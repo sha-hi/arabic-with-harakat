@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<title>ഹറഖത്ത് ചലഞ്ച്</title>
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Scheherazade', serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.container {
+  background: #ffffff;
+  width: 340px;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+.screen { display: none; }
+.active { display: block; }
+
+/* IMPORTANT for Home button */
+#screen2 { position: relative; }
+
+input, select {
+  width: 80%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+.letter {
+  font-size: 110px;
+  margin: 20px;
+  font-weight: bold;
+}
+
+button {
+  padding: 10px 18px;
+  margin: 6px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+.primary {
+  background: linear-gradient(135deg, #43e97b, #38f9d7);
+}
+.secondary {
+  background: linear-gradient(135deg, #2196f3, #21cbf3);
+  color: white;
+}
+
+/* Home Button */
+.homeBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 6px 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  background: #444;
+  color: white;
+}
+
+.scoreboard {
+  font-size: 18px;
+  margin-bottom: 10px;
+  background: #f1f3f6;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+#toast {
+  position: fixed;
+  bottom: 20px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  color: white;
+  opacity: 0;
+  transition: 0.4s;
+}
+
+.show { opacity: 1; }
+.success { background: #4caf50; }
+.info { background: #2196f3; }
+.warn { background: #ff9800; }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- SCREEN 1 -->
+<div id="screen1" class="screen active">
+
+  <h2>🎮 കളി ആരംഭിക്കുക</h2>
+
+  <input type="text" id="playerName" placeholder="പേര് നൽകുക">
+
+  <select id="timeSelect">
+    <option value="10">10 സെക്കന്റ്</option>
+    <option value="20">20 സെക്കന്റ്</option>
+    <option value="30">30 സെക്കന്റ്</option>
+    <option value="0">സമയം ഇല്ല</option>
+  </select>
+
+  <button class="primary" onclick="goToGame()">▶️ Play</button>
+
+</div>
+
+<!-- SCREEN 2 -->
+<div id="screen2" class="screen">
+
+  <!-- 🏠 Home Button -->
+  <button class="homeBtn" onclick="goHome()">🏠</button>
+
+  <div class="scoreboard">
+    👤 <span id="displayName"></span><br>
+    ⏱ <span id="timer">0</span> | ⭐ <span id="score">0</span>
+  </div>
+
+  <div id="letter" class="letter">بَ</div>
+
+  <button class="primary" onclick="startGame()">Start</button>
+
+  <div>
+    <button class="secondary" onclick="previous()" id="prevBtn" disabled>⬅️ Previous</button>
+    <button class="secondary" onclick="next()" id="nextBtn" disabled>Next ➡️</button>
+  </div>
+
+</div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+
+const rawLetters = [
+  "ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س",
+  "ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"
+];
+
+const harakats = ["َ","ِ","ُ"];
+let letters = [];
+
+rawLetters.forEach(l=>{
+  harakats.forEach(h=>{
+    letters.push(l+h);
+  });
+});
+
+let history = [];
+let index = -1;
+let score = 0;
+let timerInterval;
+let selectedTime = 0;
+
+const colors = ["#ff4d4d","#4caf50","#2196f3","#ff9800","#9c27b0"];
+
+function showToast(msg,type="info") {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.className = "show " + type;
+  setTimeout(()=>toast.className="",2000);
+}
+
+/* Go to Game */
+function goToGame() {
+  const name = document.getElementById("playerName").value || "Student";
+  selectedTime = parseInt(document.getElementById("timeSelect").value);
+
+  document.getElementById("displayName").textContent = name;
+  document.getElementById("timer").textContent = selectedTime || "∞";
+
+  document.getElementById("screen1").classList.remove("active");
+  document.getElementById("screen2").classList.add("active");
+
+  showToast("Ready!", "info");
+}
+
+/* 🏠 Home Function */
+function goHome() {
+  clearInterval(timerInterval);
+
+  document.getElementById("nextBtn").disabled = true;
+  document.getElementById("prevBtn").disabled = true;
+
+  document.getElementById("screen2").classList.remove("active");
+  document.getElementById("screen1").classList.add("active");
+
+  showToast("Home Screen", "info");
+}
+
+/* Update Letter */
+function updateLetter() {
+  const letterDiv = document.getElementById("letter");
+  letterDiv.textContent = history[index];
+  letterDiv.style.color = colors[Math.floor(Math.random()*colors.length)];
+}
+
+function next() {
+  if (index < history.length - 1) {
+    index++;
+  } else {
+    const randomLetter = letters[Math.floor(Math.random()*letters.length)];
+    history.push(randomLetter);
+    index++;
+    score++;
+    document.getElementById("score").textContent = score;
+    showToast("+1 Point!", "success");
+  }
+  updateLetter();
+}
+
+function previous() {
+  if (index > 0) {
+    index--;
+    updateLetter();
+    showToast("Previous", "warn");
+  }
+}
+
+function startGame() {
+
+  document.getElementById("nextBtn").disabled = false;
+  document.getElementById("prevBtn").disabled = false;
+
+  history = [];
+  index = -1;
+  score = 0;
+
+  document.getElementById("score").textContent = 0;
+
+  next();
+
+  clearInterval(timerInterval);
+
+  if (selectedTime > 0) {
+    let timeLeft = selectedTime;
+
+    timerInterval = setInterval(()=>{
+      timeLeft--;
+      document.getElementById("timer").textContent = timeLeft;
+
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById("nextBtn").disabled = true;
+        document.getElementById("prevBtn").disabled = true;
+        showToast("Time Over!", "warn");
+        alert("⏱ സമയം കഴിഞ്ഞു! സ്കോർ: " + score);
+      }
+    },1000);
+
+  } else {
+    document.getElementById("timer").textContent = "∞";
+  }
+
+  showToast("Game Started!", "success");
+}
+
+</script>
+
+</body>
+</html>
